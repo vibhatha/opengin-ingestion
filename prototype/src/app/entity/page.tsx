@@ -1,68 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
 import { Table, Column } from "@/components/ui/Table";
-import { useEntities, useCreateEntity } from "@/features/entity/hooks/useEntities";
+import { useEntities } from "@/features/entity/hooks/useEntities";
 import { Entity } from "@/services/entityService";
 
-
-
 export default function EntityPage() {
+    const router = useRouter();
     const { data: entities = [], isLoading } = useEntities();
-    const createEntityMutation = useCreateEntity();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        id: "",
-        majorKind: "",
-        minorKind: "",
-        name: "",
-        startTime: "",
-        endTime: "",
-    });
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const newEntity: Entity = {
-            id: formData.id,
-            kind: {
-                major: formData.majorKind,
-                minor: formData.minorKind,
-            },
-            name: {
-                value: formData.name,
-                startTime: formData.startTime,
-                endTime: formData.endTime,
-            },
-        };
-        createEntityMutation.mutate(newEntity, {
-            onSuccess: () => {
-                setIsModalOpen(false);
-                setFormData({
-                    id: "",
-                    majorKind: "",
-                    minorKind: "",
-                    name: "",
-                    startTime: "",
-                    endTime: "",
-                });
-            },
-        });
-    };
 
     const columns: Column<Entity>[] = [
         {
             header: "ID",
             accessorKey: "id",
             className: "font-medium text-gray-900 dark:text-white",
+            cell: (entity) => (
+                <button
+                    onClick={() => router.push(`/entity/view/${entity.id}`)}
+                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+                >
+                    {entity.id}
+                </button>
+            ),
         },
         {
             header: "Name",
@@ -76,6 +37,29 @@ export default function EntityPage() {
             header: "Start Time",
             cell: (entity) => entity.name.startTime,
         },
+        {
+            header: "Actions",
+            cell: (entity) => (
+                <div className="flex space-x-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/entity/view/${entity.id}`)}
+                        title="View"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/entity/update/${entity.id}`)}
+                        title="Edit"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </div>
+            ),
+        },
     ];
 
     return (
@@ -87,7 +71,7 @@ export default function EntityPage() {
                         Create and manage entities in the system.
                     </p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
+                <Button onClick={() => router.push("/entity/create")} leftIcon={<Plus className="h-4 w-4" />}>
                     New Entity
                 </Button>
             </div>
@@ -118,82 +102,6 @@ export default function EntityPage() {
                     onPageChange: () => { },
                 }}
             />
-
-            {/* Modal */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Entity"
-            >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input
-                        label="ID"
-                        name="id"
-                        id="id"
-                        required
-                        value={formData.id}
-                        onChange={handleInputChange}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Major Kind"
-                            name="majorKind"
-                            id="majorKind"
-                            required
-                            value={formData.majorKind}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="Minor Kind"
-                            name="minorKind"
-                            id="minorKind"
-                            required
-                            value={formData.minorKind}
-                            onChange={handleInputChange}
-                        />
-                    </div>
-                    <Input
-                        label="Name"
-                        name="name"
-                        id="name"
-                        required
-                        value={formData.name}
-                        onChange={handleInputChange}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Start Time"
-                            type="datetime-local"
-                            name="startTime"
-                            id="startTime"
-                            required
-                            value={formData.startTime}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="End Time"
-                            type="datetime-local"
-                            name="endTime"
-                            id="endTime"
-                            value={formData.endTime}
-                            onChange={handleInputChange}
-                        />
-                    </div>
-                    <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                        <Button type="submit" className="w-full sm:col-start-2">
-                            Create
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="w-full sm:mt-0 sm:col-start-1"
-                            onClick={() => setIsModalOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
         </div>
     );
 }

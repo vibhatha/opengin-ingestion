@@ -18,3 +18,23 @@ export const useCreateEntity = () => {
         },
     });
 };
+
+export const useEntity = (id: string) => {
+    return useQuery({
+        queryKey: ["entity", id],
+        queryFn: () => entityService.getEntityById(id),
+        enabled: !!id,
+    });
+};
+
+export const useUpdateEntity = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: entityService.updateEntity,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["entities"] });
+            queryClient.invalidateQueries({ queryKey: ["entity", data.id] });
+        },
+    });
+};

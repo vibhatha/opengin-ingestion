@@ -36,4 +36,19 @@ export const entityService = {
         mockEntities.push(entity);
         return entity;
     },
+
+    getEntityById: async (id: string): Promise<Entity | undefined> => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return mockEntities.find((e) => e.id === id);
+    },
+
+    updateEntity: async (entity: Entity): Promise<Entity> => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const index = mockEntities.findIndex((e) => e.id === entity.id);
+        if (index !== -1) {
+            mockEntities[index] = entity;
+            return entity;
+        }
+        throw new Error("Entity not found");
+    },
 };
