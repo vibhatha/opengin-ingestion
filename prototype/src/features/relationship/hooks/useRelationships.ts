@@ -18,3 +18,23 @@ export const useCreateRelationship = () => {
         },
     });
 };
+
+export const useRelationship = (id: string) => {
+    return useQuery({
+        queryKey: ["relationship", id],
+        queryFn: () => relationshipService.getRelationshipById(id),
+        enabled: !!id,
+    });
+};
+
+export const useUpdateRelationship = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: relationshipService.updateRelationship,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["relationships"] });
+            queryClient.invalidateQueries({ queryKey: ["relationship", data.id] });
+        },
+    });
+};
