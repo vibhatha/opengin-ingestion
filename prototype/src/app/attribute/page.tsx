@@ -1,60 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
 import { Table, Column } from "@/components/ui/Table";
-import { useAttributes, useCreateAttribute } from "@/features/attribute/hooks/useAttributes";
+import { useAttributes } from "@/features/attribute/hooks/useAttributes";
 import { Attribute } from "@/services/attributeService";
 
 export default function AttributePage() {
+    const router = useRouter();
     const { data: attributes = [], isLoading } = useAttributes();
-    const createAttributeMutation = useCreateAttribute();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        key: "",
-        value: "",
-        startTime: "",
-        endTime: "",
-    });
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const newAttribute: Attribute = {
-            key: formData.key,
-            value: formData.value,
-            startTime: formData.startTime,
-            endTime: formData.endTime,
-        };
-        createAttributeMutation.mutate(newAttribute, {
-            onSuccess: () => {
-                setIsModalOpen(false);
-                setFormData({
-                    key: "",
-                    value: "",
-                    startTime: "",
-                    endTime: "",
-                });
-            },
-        });
-    };
 
     const columns: Column<Attribute>[] = [
         {
-            header: "Key",
-            accessorKey: "key",
+            header: "Name",
+            accessorKey: "name",
             className: "font-medium text-gray-900 dark:text-white",
-        },
-        {
-            header: "Value",
-            accessorKey: "value",
+            cell: (item) => (
+                <button
+                    onClick={() => router.push(`/attribute/view/${item.id}`)}
+                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+                >
+                    {item.name}
+                </button>
+            ),
         },
         {
             header: "Start Time",
@@ -64,6 +33,29 @@ export default function AttributePage() {
             header: "End Time",
             accessorKey: "endTime",
         },
+        {
+            header: "Actions",
+            cell: (item) => (
+                <div className="flex space-x-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/attribute/view/${item.id}`)}
+                        title="View Table"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/attribute/update/${item.id}`)}
+                        title="Edit"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </div>
+            ),
+        },
     ];
 
     return (
@@ -72,10 +64,10 @@ export default function AttributePage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Attributes</h1>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Manage time-based attributes.
+                        Manage attributes with table values.
                     </p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
+                <Button onClick={() => router.push("/attribute/create")} leftIcon={<Plus className="h-4 w-4" />}>
                     New Attribute
                 </Button>
             </div>
@@ -98,7 +90,7 @@ export default function AttributePage() {
             <Table
                 data={attributes}
                 columns={columns}
-                keyExtractor={(item) => item.key + item.startTime}
+                keyExtractor={(item) => item.id}
                 isLoading={isLoading}
                 pagination={{
                     currentPage: 1,
@@ -106,64 +98,6 @@ export default function AttributePage() {
                     onPageChange: () => { },
                 }}
             />
-
-            {/* Modal */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Attribute"
-            >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input
-                        label="Key"
-                        name="key"
-                        id="key"
-                        required
-                        value={formData.key}
-                        onChange={handleInputChange}
-                    />
-                    <Input
-                        label="Value"
-                        name="value"
-                        id="value"
-                        required
-                        value={formData.value}
-                        onChange={handleInputChange}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Start Time"
-                            type="datetime-local"
-                            name="startTime"
-                            id="startTime"
-                            required
-                            value={formData.startTime}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="End Time"
-                            type="datetime-local"
-                            name="endTime"
-                            id="endTime"
-                            value={formData.endTime}
-                            onChange={handleInputChange}
-                        />
-                    </div>
-                    <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                        <Button type="submit" className="w-full sm:col-start-2">
-                            Create
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="w-full sm:mt-0 sm:col-start-1"
-                            onClick={() => setIsModalOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
         </div>
     );
 }
