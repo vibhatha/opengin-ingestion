@@ -18,3 +18,23 @@ export const useCreateMetadata = () => {
         },
     });
 };
+
+export const useMetadataItem = (id: string) => {
+    return useQuery({
+        queryKey: ["metadata", id],
+        queryFn: () => metadataService.getMetadataById(id),
+        enabled: !!id,
+    });
+};
+
+export const useUpdateMetadata = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: metadataService.updateMetadata,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["metadata"] });
+            queryClient.invalidateQueries({ queryKey: ["metadata", data.id] });
+        },
+    });
+};
