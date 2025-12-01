@@ -4,51 +4,98 @@ export interface Entity {
         major: string;
         minor: string;
     };
+    created: string;
+    terminated: string;
     name: {
         value: string;
         startTime: string;
         endTime: string;
     };
+    metadata: Array<{ key: string; value: string }>;
+    attributes: Array<any>;
+    relationships: Array<any>;
 }
 
 let mockEntities: Entity[] = [
     {
         id: "e1",
-        kind: { major: "Person", minor: "Employee" },
-        name: { value: "John Doe", startTime: "2023-01-01T00:00", endTime: "" },
-    },
-    {
-        id: "e2",
-        kind: { major: "Person", minor: "Manager" },
-        name: { value: "Jane Smith", startTime: "2023-02-01T00:00", endTime: "" },
+        kind: { major: "example", minor: "test" },
+        created: "2024-03-17T10:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2024-03-17T10:00:00Z",
+            endTime: "",
+            value: "Sample Entity"
+        },
+        metadata: [],
+        attributes: [],
+        relationships: []
     },
 ];
 
 export const entityService = {
     getEntities: async (): Promise<Entity[]> => {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return [...mockEntities];
+        try {
+            const response = await fetch("/api/entities");
+            if (!response.ok) {
+                throw new Error(`Failed to fetch entities: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching entities:", error);
+            // Fallback to mock data on error
+            return [...mockEntities];
+        }
     },
 
     createEntity: async (entity: Entity): Promise<Entity> => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        mockEntities.push(entity);
-        return entity;
+        const response = await fetch("/api/entities", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entity),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `Failed to create entity: ${response.statusText}`);
+        }
+
+        return await response.json();
     },
 
     getEntityById: async (id: string): Promise<Entity | undefined> => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return mockEntities.find((e) => e.id === id);
+        try {
+            const response = await fetch(`/api/entities/${id}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return undefined;
+                }
+                throw new Error(`Failed to fetch entity: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching entity by ID:", error);
+            // Fallback to mock data
+            return mockEntities.find((e) => e.id === id);
+        }
     },
 
     updateEntity: async (entity: Entity): Promise<Entity> => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const index = mockEntities.findIndex((e) => e.id === entity.id);
-        if (index !== -1) {
-            mockEntities[index] = entity;
-            return entity;
+        const response = await fetch(`/api/entities/${entity.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entity),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `Failed to update entity: ${response.statusText}`);
         }
-        throw new Error("Entity not found");
+
+        return await response.json();
     },
 };

@@ -41,17 +41,26 @@ export function EntityForm({ initialData, onSubmit, isLoading, onCancel, submitL
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Auto-generate created timestamp if not present (for new entities)
+        const now = new Date().toISOString();
+
         const entity: Entity = {
             id: formData.id,
             kind: {
                 major: formData.majorKind,
                 minor: formData.minorKind,
             },
+            created: initialData?.created || now,
+            terminated: initialData?.terminated || "",
             name: {
                 value: formData.name,
                 startTime: formData.startTime,
                 endTime: formData.endTime,
             },
+            metadata: initialData?.metadata || [],
+            attributes: initialData?.attributes || [],
+            relationships: initialData?.relationships || [],
         };
         onSubmit(entity);
     };
