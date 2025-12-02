@@ -49,7 +49,7 @@ export const entityService = {
     },
 
     createEntity: async (entity: Entity): Promise<Entity> => {
-        const response = await fetch("/api/entities", {
+        const response = await fetch("/entities", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -67,7 +67,7 @@ export const entityService = {
 
     getEntityById: async (id: string): Promise<Entity | undefined> => {
         try {
-            const response = await fetch(`/api/entities/${id}`);
+            const response = await fetch(`/api/entities/search/${id}`);
             if (!response.ok) {
                 if (response.status === 404) {
                     return undefined;

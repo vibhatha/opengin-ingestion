@@ -8,7 +8,8 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const response = await fetch(`${OPENGIN_API_URL}/entities/${id}`, {
+        // Use v1/entities/search endpoint for getting entity by ID
+        const response = await fetch(`${OPENGIN_API_URL}/v1/entities/search/${id}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
