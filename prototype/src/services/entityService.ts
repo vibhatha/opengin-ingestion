@@ -148,12 +148,15 @@ export const entityService = {
     },
 
     updateEntity: async (entity: Entity): Promise<Entity> => {
+        // Exclude kind from updates as it cannot be changed
+        const { kind, ...updatePayload } = entity;
+
         const response = await fetch(`/api/entities/${entity.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(entity),
+            body: JSON.stringify(updatePayload),
         });
 
         if (!response.ok) {

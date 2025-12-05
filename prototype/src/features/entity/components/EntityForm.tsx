@@ -114,6 +114,7 @@ export function EntityForm({ initialData, onSubmit, isLoading, onCancel, submitL
                     required
                     value={formData.majorKind}
                     onChange={handleInputChange}
+                    disabled={!!initialData?.id} // Disable Kind editing for updates
                 />
                 <Input
                     label="Minor Kind"
@@ -122,6 +123,7 @@ export function EntityForm({ initialData, onSubmit, isLoading, onCancel, submitL
                     required
                     value={formData.minorKind}
                     onChange={handleInputChange}
+                    disabled={!!initialData?.id} // Disable Kind editing for updates
                 />
             </div>
             <Input
