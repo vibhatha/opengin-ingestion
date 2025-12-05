@@ -1,5 +1,6 @@
 import { MAJOR_KINDS } from "../constants/entityKinds";
 import { parseEntityResponse } from "../utils/responseUtils";
+import { parseProtobufName } from "../utils/protobufUtils";
 
 export interface Entity {
     id: string;
@@ -106,14 +107,39 @@ export const entityService = {
 
     getEntityById: async (id: string): Promise<Entity | undefined> => {
         try {
-            const response = await fetch(`/v1/entities/search/${id}`);
+            const response = await fetch(`/api/v1/entities/search`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: id  // Search by ID
+                }),
+            });
             if (!response.ok) {
                 if (response.status === 404) {
                     return undefined;
                 }
                 throw new Error(`Failed to fetch entity: ${response.statusText}`);
             }
-            return await response.json();
+
+            const text = await response.text();
+            const data = JSON.parse(text);
+            const entities = parseEntityResponse(data);
+
+            if (!entities || entities.length === 0) {
+                return undefined;
+            }
+
+            // Take the first entity
+            const entity = entities[0];
+
+            // Parse the name field if it's a string
+            if (typeof entity.name === 'string') {
+                entity.name = parseProtobufName(entity.name);
+            }
+
+            return entity;
         } catch (error) {
             console.error("Error fetching entity by ID:", error);
             // Fallback to mock data

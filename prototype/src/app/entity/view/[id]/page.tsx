@@ -26,6 +26,8 @@ export default function ViewEntityPage({ params }: { params: Promise<{ id: strin
         return <div>Entity not found</div>;
     }
 
+    console.log("view.id.Entity:", entity);
+
     return (
         <div className="max-w-2xl mx-auto py-8">
             <div className="mb-6 flex justify-between items-center">
@@ -67,11 +69,11 @@ export default function ViewEntityPage({ params }: { params: Promise<{ id: strin
                 <div className="grid grid-cols-2 gap-6">
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Start Time</h3>
-                        <p className="mt-1 text-lg text-gray-900 dark:text-white">{entity.name.startTime}</p>
+                        <p className="mt-1 text-lg text-gray-900 dark:text-white">{entity.created}</p>
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">End Time</h3>
-                        <p className="mt-1 text-lg text-gray-900 dark:text-white">{entity.name.endTime || "-"}</p>
+                        <p className="mt-1 text-lg text-gray-900 dark:text-white">{entity.terminated || "-"}</p>
                     </div>
                 </div>
             </div>

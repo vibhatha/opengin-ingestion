@@ -148,15 +148,38 @@ describe('entityService', () => {
         relationships: [],
       }
 
-        ; (fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockEntity,
-        })
+      // Mock response with body wrapper and stringified name (simulating protobuf)
+      const apiResponse = {
+        body: [{
+          ...mockEntity,
+          name: JSON.stringify({
+            typeUrl: "type.googleapis.com/google.protobuf.StringValue",
+            value: Buffer.from("Entity 1").toString('hex')
+          })
+        }]
+      };
+
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify(apiResponse),
+      })
 
       const result = await entityService.getEntityById('e1')
 
-      expect(fetch).toHaveBeenCalledWith('/v1/entities/search/e1')
-      expect(result).toEqual(mockEntity)
+      expect(fetch).toHaveBeenCalledWith('/api/v1/entities/search', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ id: 'e1' })
+      }))
+
+      // Result should have parsed name
+      expect(result).toEqual({
+        ...mockEntity,
+        name: {
+          value: 'Entity 1',
+          startTime: '', // Default since not in protobuf string
+          endTime: ''
+        }
+      })
     })
 
     it('returns undefined for 404 response', async () => {

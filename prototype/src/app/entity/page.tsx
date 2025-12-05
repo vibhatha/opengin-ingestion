@@ -1,5 +1,6 @@
 "use client";
 
+import { parseProtobufName } from "@/utils/protobufUtils";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +30,7 @@ export default function EntityPage() {
         },
         {
             header: "Name",
-            cell: (entity) => entity.name.value,
+            cell: (entity) => parseProtobufName(entity.name as any).value,
         },
         {
             header: "Kind",
@@ -37,7 +38,7 @@ export default function EntityPage() {
         },
         {
             header: "Start Time",
-            cell: (entity) => entity.name.startTime,
+            cell: (entity) => entity.created,
         },
         {
             header: "Actions",

@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await response.json();
+        console.log("Search response:", data);
         return NextResponse.json(data);
     } catch (error) {
         console.error("Error searching entities:", error);
