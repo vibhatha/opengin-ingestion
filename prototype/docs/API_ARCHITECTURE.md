@@ -14,25 +14,25 @@ This architecture solves CORS issues and provides a clean separation of concerns
 ┌─────────────────────────────────────────────────────────────┐
 │ FRONTEND (Browser)                                          │
 │                                                             │
-│  entityService.ts calls:                                   │
-│    • fetch('/v1/entities/search') → READ API              │
-│    • fetch('/entities') → INGESTION API                   │
-│    • fetch('/api/entities/[id]') → READ/INGESTION API     │
+│  entityService.ts calls:                                    │
+│    • fetch('/v1/entities/search') → READ API                │
+│    • fetch('/entities') → INGESTION API                     │
+│    • fetch('/api/entities/[id]') → READ/INGESTION API       │
 └─────────────────┬───────────────────────────────────────────┘
                   │ (same origin, no CORS)
                   ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ NEXT.JS API PROXY ROUTES (Server)                          │
+│ NEXT.JS API PROXY ROUTES (Server)                           │
 │                                                             │
-│  📁 /api/v1/entities/search/route.ts                       │
-│    → Forwards to READ_API_URL/v1/entities/search          │
+│  📁 /api/v1/entities/search/route.ts                        │
+│    → Forwards to READ_API_URL/v1/entities/search            │
 │                                                             │
-│  📁 /api/entities/route.ts                                 │
-│    → POST forwards to INGESTION_API_URL/entities          │
+│  📁 /api/entities/route.ts                                  │
+│    → POST forwards to INGESTION_API_URL/entities            │
 │                                                             │
-│  📁 /api/entities/[id]/route.ts                            │
-│    → GET forwards to READ_API_URL/v1/entities/search/{id} │
-│    → PUT forwards to INGESTION_API_URL/entities/{id}      │
+│  📁 /api/entities/[id]/route.ts                             │
+│    → GET forwards to READ_API_URL/v1/entities/search/{id}   │
+│    → PUT forwards to INGESTION_API_URL/entities/{id}        │
 └─────────────────┬─────┬─────────────────────────────────────┘
                   │     │
      ┌────────────┘     └────────────┐

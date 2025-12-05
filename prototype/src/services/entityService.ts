@@ -1,3 +1,6 @@
+import { MAJOR_KINDS } from "../constants/entityKinds";
+import { parseEntityResponse } from "../utils/responseUtils";
+
 export interface Entity {
     id: string;
     kind: {
@@ -36,51 +39,47 @@ let mockEntities: Entity[] = [
 export const entityService = {
     getEntities: async (): Promise<Entity[]> => {
         try {
-            // Import major kinds from constants
-            const { MAJOR_KINDS } = await import('@/constants');
-
-            // Query each major kind separately using POST with JSON payload
-            const searchPromises = MAJOR_KINDS.map(async (majorKind) => {
-                try {
-                    const response = await fetch('/api/v1/entities/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
+            // Create a promise for each major kind
+            const promises = MAJOR_KINDS.map(async (majorKind) => {
+                const response = await fetch("/api/v1/entities/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        kind: {
+                            major: majorKind,
                         },
-                        body: JSON.stringify({
-                            kind: {
-                                major: majorKind
-                            }
-                        }),
-                    });
+                    }),
+                });
 
-                    // 404 means no entities of this kind exist - this is normal, not an error
+                if (!response.ok) {
+                    // Treat 404 as empty result for that kind
                     if (response.status === 404) {
-                        return [];
+                        return null;
                     }
+                    throw new Error(`Failed to fetch entities for kind ${majorKind}: ${response.statusText}`);
+                }
 
-                    // Log actual errors (5xx, network issues, etc.)
-                    if (!response.ok) {
-                        console.error(`Failed to fetch entities for kind ${majorKind}:`, response.status, response.statusText);
-                        return [];
-                    }
+                const text = await response.text();
+                if (!text) {
+                    return null;
+                }
 
-                    const data = await response.json();
-                    // Assuming the API returns an array or object with entities array
-                    return Array.isArray(data) ? data : (data.entities || []);
-                } catch (error) {
-                    console.error(`Error fetching entities for kind ${majorKind}:`, error);
-                    return [];
+                try {
+                    const data = JSON.parse(text);
+                    return parseEntityResponse(data);
+                } catch (e) {
+                    console.warn(`Failed to parse response for kind ${majorKind}`, e);
+                    return null;
                 }
             });
 
-            // Wait for all searches to complete
-            const results = await Promise.all(searchPromises);
+            // Wait for all requests to complete
+            const results = await Promise.all(promises);
 
-            // Flatten and aggregate all results
-            const allEntities = results.flat();
-
-            return allEntities;
+            // Filter out nulls and flatten the array of arrays into a single array of entities
+            return results.filter((r): r is Entity[] => r !== null).flat();
         } catch (error) {
             console.error("Error fetching entities:", error);
             // Fallback to mock data on error
@@ -89,7 +88,7 @@ export const entityService = {
     },
 
     createEntity: async (entity: Entity): Promise<Entity> => {
-        const response = await fetch("/api/entities", {
+        const response = await fetch("/entities", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -107,17 +106,7 @@ export const entityService = {
 
     getEntityById: async (id: string): Promise<Entity | undefined> => {
         try {
-            // Search by ID using POST with ID in payload
-            const response = await fetch('/api/v1/entities/search', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: id
-                }),
-            });
-
+            const response = await fetch(`/v1/entities/search/${id}`);
             if (!response.ok) {
                 if (response.status === 404) {
                     return undefined;

@@ -4,8 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 const READ_API_URL = process.env.OPENGIN_READ_API_URL || "http://0.0.0.0:8081";
 
 export async function POST(request: NextRequest) {
+    console.log("api/v1/entities/search")
     try {
         const body = await request.json();
+        console.log("Search request:", body);
 
         // Forward search request to READ API
         const response = await fetch(`${READ_API_URL}/v1/entities/search`, {

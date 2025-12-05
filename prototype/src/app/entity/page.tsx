@@ -11,6 +11,8 @@ export default function EntityPage() {
     const router = useRouter();
     const { data: entities = [], isLoading } = useEntities();
 
+    console.log("Entities:", entities);
+
     const columns: Column<Entity>[] = [
         {
             header: "ID",
