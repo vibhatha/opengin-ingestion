@@ -1,10 +1,47 @@
+import ipaddress
 import json
 import os
+import socket
+import tempfile
+from datetime import datetime
+from urllib.parse import urlparse
 
 import click
+import requests
 from tabulate import tabulate
 
-from opengin.tracer.agents.orchestrator import FileSystemManager
+from opengin.tracer.agents.orchestrator import Agent0, FileSystemManager
+
+
+def validate_url(url):
+    """
+    Validates that the URL does not point to a private, loopback, or reserved IP address.
+    Raises click.ClickException if the URL is invalid or unsafe.
+    """
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            raise click.ClickException("Invalid URL: No hostname found")
+
+        # Resolve hostname to IP
+        try:
+            ip_str = socket.gethostbyname(hostname)
+        except socket.gaierror:
+             raise click.ClickException(f"Could not resolve hostname: {hostname}")
+
+        ip = ipaddress.ip_address(ip_str)
+
+        if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_multicast:
+             raise click.ClickException(f"URL resolves to a restricted IP address: {ip_str}")
+        
+        return True
+
+    except ValueError:
+        raise click.ClickException("Invalid URL or IP address format")
+    except Exception as e:
+         # unexpected error during validation
+         raise click.ClickException(f"URL validation failed: {e}")
 
 
 @click.group()
@@ -150,6 +187,116 @@ def clear_all():
         click.echo("All pipelines and runs have been cleared.")
     except Exception as e:
         click.echo(f"Error clearing all pipelines: {e}")
+
+
+@cli.command()
+@click.argument("input_source")
+@click.option("--name", default=None, help="Name of the pipeline run. Defaults to 'run_<timestamp>'.")
+@click.option("--prompt", default="Extract all tables.", help="Extraction prompt or path to a text file.")
+def run(input_source, name, prompt):
+    """
+    Run an extraction pipeline.
+
+    INPUT_SOURCE can be a local file path (e.g., ./data/doc.pdf) or a URL (e.g., https://example.com/doc.pdf).
+
+    If INPUT_SOURCE starts with 'http://' or 'https://', it will be downloaded to a temporary location.
+    """
+    # 1. Handle Prompt Input (String vs File)
+    # If the prompt argument is a path to an existing file, read content.
+    if os.path.exists(prompt):
+        click.echo(f"Loading prompt from file: {prompt}")
+        with open(prompt, "r") as f:
+            prompt_text = f.read()
+    else:
+        prompt_text = prompt
+
+    # 2. Handle Input Source (Local vs URL)
+    is_url = input_source.startswith("http://") or input_source.startswith("https://")
+    input_path = input_source
+    # Default filename for local files; overridden for URLs if possible
+    filename = os.path.basename(input_source)
+    temp_file = None
+
+    if is_url:
+        validate_url(input_source)
+        click.echo(f"Downloading PDF from: {input_source}")
+        try:
+            response = requests.get(input_source, stream=True, timeout=60)
+            response.raise_for_status()
+
+            # Try to extract filename from Content-Disposition
+            content_disposition = response.headers.get("content-disposition")
+            if content_disposition:
+                # Simple parsing for filename="name"
+                import re
+                fname = re.findall(r'filename="?([^"]+)"?', content_disposition)
+                if fname:
+                    filename = fname[0]
+            else:
+                # Fallback to URL path cleaning
+                path = urlparse(input_source).path
+                filename = os.path.basename(path)
+            
+            # Ensure filename isn't empty after fallback
+            if not filename or filename == ".":
+                 filename = "downloaded_doc.pdf"
+
+            # Create temp file
+            parsed_url = urlparse(input_source)
+            suffix = os.path.splitext(parsed_url.path)[1]
+            if not suffix:
+                suffix = ".pdf"
+
+            # We create a named temp file but close it so Agent0 can read/copy it safely
+            temp_fd, temp_path = tempfile.mkstemp(suffix=suffix)
+            os.close(temp_fd)
+
+            with open(temp_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            input_path = temp_path
+            temp_file = temp_path  # Mark for cleanup
+            click.echo(f"Downloaded to temporary file: {input_path}")
+
+        except requests.exceptions.RequestException as e:
+            raise click.ClickException(f"Error downloading file: {e}")
+
+    # 3. Setup Pipeline Name
+    if not name:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        name = f"run_{timestamp}"
+
+    # 4. Initialize and Run Agent0
+    try:
+        agent0 = Agent0()
+        
+        click.echo(f"Initializing pipeline '{name}' for file '{filename}'...")
+        run_id, metadata = agent0.create_pipeline(name, input_path, filename)
+
+        click.echo(f"Run ID: {run_id}")
+        click.echo("Starting extraction...")
+
+        agent0.run_pipeline(name, run_id, prompt_text)
+
+        # 5. Success Output
+        click.echo("\nPipeline completed successfully!")
+
+        # Show output files
+        fs_manager = agent0.fs_manager
+        output_dir = fs_manager.get_output_path(name, run_id)
+        if os.path.exists(output_dir):
+            click.echo("Output files:")
+            for f in os.listdir(output_dir):
+                click.echo(f" - {os.path.join(output_dir, f)}")
+
+    except Exception as e:
+        raise click.ClickException(f"Pipeline failed: {e}")
+
+    finally:
+        # Cleanup temp file if we downloaded one
+        if temp_file and os.path.exists(temp_file):
+            os.remove(temp_file)
 
 
 if __name__ == "__main__":
